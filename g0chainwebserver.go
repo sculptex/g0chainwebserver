@@ -36,9 +36,21 @@ import (
 )
 
 const tmppath="tmp"
+const defaultconfig="config.yaml"
+const version="0.0.1"
+
+var configfile string
+
+func fileExists(filename string) bool {
+    info, err := os.Stat(filename)
+    if os.IsNotExist(err) {
+        return false
+    }
+    return !info.IsDir()
+}
 
 func FilenameWithoutExtension(fn string) string {
-      return strings.TrimSuffix(fn, path.Ext(fn))
+	return strings.TrimSuffix(fn, path.Ext(fn))
 }
 
 func microTime() float64 {
@@ -55,12 +67,21 @@ func getTmpPath() string {
 	
 func main() {
 
+    http.HandleFunc("/version/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Version %s", version)
+    })
+    	
+    http.HandleFunc("/status/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "OK, config = %s", configfile)
+    })	
+
     http.HandleFunc("/config/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "config.yaml")
+		http.ServeFile(w, r, defaultconfig)
     })
 
     http.HandleFunc("/authticket/", func(w http.ResponseWriter, r *http.Request) {
 		urlfull := r.URL.Path
+		urlhost := r.Host
 		urlonly := strings.Replace(urlfull, "/authticket/", "", 1)
 		// Split into Max two parts, authticket plus (optional) path
 		urlsplit := strings.SplitN(urlonly, "/", 2)
@@ -81,7 +102,11 @@ func main() {
 		
 		referencetype := dat["reference_type"].(string)
 		var filename string
-				
+		var cmdarray []string
+		var relfilename string
+		var redirect bool
+		redirect = false
+						
 		allocationid, aerr := ioutil.ReadFile("allocation.txt")
 		if aerr != nil {
 			log.Fatal(aerr)
@@ -90,37 +115,52 @@ func main() {
 		if len(tmpdir)>0 {
 			tmpdir = tmpdir+string(os.PathSeparator)
 		}
-		tmpdir = tmpdir+getTmpPath()
+		tmpdir = tmpdir+getTmpPath()+string(os.PathSeparator)
 		os.Mkdir(tmpdir, 0700)
-		
+
+
 		if referencetype == "d" {
 			// If Authticket is for a directory, then file path is extracted as rest of url
 		    filename = "/"+urlsplit[1]
-		}
-		
-		if referencetype == "f" {
-			// If Authticket is for a directory, then file path is extracted from authticket
-			filename = dat["file_name"].(string)
-			if(len(filename)==0) {
-				// Failing that, file path is extracted as rest of url
-				filename = "/"+urlsplit[1]
+		    if(filename[len(filename)-1:] == "/") {
+				redirect = true
+				filename = filename+".default"
 			}
-		}
-		
-		if(len(filename)>0) {
-			fmt.Println("\nServing "+filename)
-			relfilename := tmpdir+filename
-			cmdarray := []string{
+		    relfilename = tmpdir+filename
+			cmdarray = []string{
 				"./zbox",
 				"download",
-				"--allocation",
+				"--allocation",  // existing bug in zboxcli, allocation required for folder event though included in authticket
 				string(allocationid),
-				"--authticket",
+				"--authticket",	
 				string(authticket),
 				"--remotepath",
 				string(filename),
 				"--localpath",
-				string(relfilename) }
+				string(relfilename) }		    
+		}
+		
+		if referencetype == "f" {
+			// If Authticket is for a file, then file path is extracted from authticket
+			filename = dat["file_name"].(string)
+			relfilename = tmpdir+filename
+			redirect = false
+			cmdarray = []string{
+				"./zbox",
+				"download",
+				"--authticket",
+				string(authticket),
+				"--localpath",
+				string(relfilename) }			
+		}
+		
+		if(configfile != defaultconfig) {
+			cmdarray = append( cmdarray, "--config", configfile )	
+		}	
+		
+		if(len(filename)>0) {
+			fmt.Println("\nServing "+filename)
+
 			// DEBUG
 			//output := strings.Join(cmdarray, " ")
 			//fmt.Printf("OUTPUT, %s\n", output)
@@ -132,7 +172,22 @@ func main() {
 			}
 			// Server Downloaded File
 			// opportunity for file validation
-			http.ServeFile(w, r, relfilename)
+		    if(redirect) {
+				if(fileExists(relfilename)) {
+					b, ferr := ioutil.ReadFile(relfilename) // just pass the file name
+				    if ferr != nil {
+				        fmt.Print(ferr)
+				    }
+				    newpath := string(b) // convert content to a 'string'
+					fmt.Printf("\nREDIRECT\n%s\n", newpath)
+					http.Redirect(w, r, newpath, 301)
+				}
+			} else
+			{
+				fmt.Printf("\nFILE\n%s\n%s\n", urlhost, filename)
+				http.ServeFile(w, r, relfilename)
+			}
+			
 		}	
         // (opportunity to cache files)
         // Delete folder and file
@@ -142,6 +197,10 @@ func main() {
     // Allow user to specify port    
     var port string
     flag.StringVar(&port, "port", "6942", "Port Number (default 6942)")
+    
+    // Allow user to specify config file    
+    flag.StringVar(&configfile, "config", string(defaultconfig), "config file (default "+defaultconfig+")")
+    
     flag.Parse()
 
     // Advise listening on port
