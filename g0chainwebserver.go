@@ -37,9 +37,11 @@ import (
 
 const tmppath="tmp"
 const defaultconfig="config.yaml"
-const version="0.0.1"
+const defaultallocation="allocation.txt"
+const version="0.0.2"
 
 var configfile string
+var debug string
 
 func fileExists(filename string) bool {
     info, err := os.Stat(filename)
@@ -51,6 +53,19 @@ func fileExists(filename string) bool {
 
 func FilenameWithoutExtension(fn string) string {
 	return strings.TrimSuffix(fn, path.Ext(fn))
+}
+
+func showfilesize(bytes int64) string {
+	if(bytes < 1000) {
+		return(fmt.Sprintf("%d bytes", bytes)) 
+	}
+	if(bytes < 1000000) {
+		return(fmt.Sprintf("%d KB", int64(bytes/1000))) 
+	}
+	if(bytes < 1000000000) {
+		return(fmt.Sprintf("%d MB", int64(bytes/1000000))) 
+	}			
+	return(fmt.Sprintf("%d GB", int64(bytes/1000000000))) 
 }
 
 func microTime() float64 {
@@ -107,7 +122,7 @@ func main() {
 		var redirect bool
 		redirect = false
 						
-		allocationid, aerr := ioutil.ReadFile("allocation.txt")
+		allocationid, aerr := ioutil.ReadFile(defaultallocation)
 		if aerr != nil {
 			log.Fatal(aerr)
 		}
@@ -115,14 +130,17 @@ func main() {
 		if len(tmpdir)>0 {
 			tmpdir = tmpdir+string(os.PathSeparator)
 		}
-		tmpdir = tmpdir+getTmpPath()+string(os.PathSeparator)
+		tmpdir = tmpdir+getTmpPath()//+string(os.PathSeparator)
 		os.Mkdir(tmpdir, 0700)
 
 
 		if referencetype == "d" {
+		    filename = "/"
+		    if(len(urlsplit)>1) {
+				filename = filename+urlsplit[1]
+			}
 			// If Authticket is for a directory, then file path is extracted as rest of url
-		    filename = "/"+urlsplit[1]
-		    if(filename[len(filename)-1:] == "/") {
+			if(filename[len(filename)-1:] == "/") {
 				redirect = true
 				filename = filename+".default"
 			}
@@ -143,7 +161,7 @@ func main() {
 		if referencetype == "f" {
 			// If Authticket is for a file, then file path is extracted from authticket
 			filename = dat["file_name"].(string)
-			relfilename = tmpdir+filename
+			relfilename = tmpdir+string(os.PathSeparator)+filename
 			redirect = false
 			cmdarray = []string{
 				"./zbox",
@@ -159,33 +177,63 @@ func main() {
 		}	
 		
 		if(len(filename)>0) {
-			fmt.Println("\nServing "+filename)
+			fmt.Printf("SRV: %s  (%s)\n", filename, urlhost)
 
-			// DEBUG
-			//output := strings.Join(cmdarray, " ")
-			//fmt.Printf("OUTPUT, %s\n", output)
+			if(debug=="1") {
+				output := strings.Join(cmdarray, " ")
+				fmt.Printf("CMD: %s\n", output)
+		    }
 			head := cmdarray[0]
 			parts := cmdarray[1:len(cmdarray)]
+			
+			var starttime float64
+			var endtime float64
+			var elapsedtime float64
+			var rate int64
+			var fsize int64
+
+			starttime = microTime()
 			_ , err = exec.Command(head,parts...).Output()
+			endtime = microTime()
+			elapsedtime = endtime-starttime
+			
 			if err != nil {
 				fmt.Printf("%s", err)
 			}
 			// Server Downloaded File
 			// opportunity for file validation
-		    if(redirect) {
-				if(fileExists(relfilename)) {
+			if(fileExists(relfilename)) {
+				if(redirect) {
+				
 					b, ferr := ioutil.ReadFile(relfilename) // just pass the file name
 				    if ferr != nil {
 				        fmt.Print(ferr)
 				    }
 				    newpath := string(b) // convert content to a 'string'
-					fmt.Printf("\nREDIRECT\n%s\n", newpath)
+					fmt.Printf("RED: %s\n", newpath)
 					http.Redirect(w, r, newpath, 301)
+				} else
+				{
+					fi, serr := os.Stat(relfilename)
+					if serr != nil {
+					  	fmt.Printf("%s", serr)
+					}
+					fsize = fi.Size()
+					rate = int64( float64(fsize) / elapsedtime )
+					fmt.Printf("GET: %s  %s in %0.3f secs (%s/sec)\n", filename, showfilesize(fsize), elapsedtime, showfilesize(rate))
+					
+					starttime = microTime()
+					http.ServeFile(w, r, relfilename)
+					endtime = microTime()
+					elapsedtime = endtime-starttime
+					rate = int64( float64(fsize) / elapsedtime )
+					fmt.Printf("SND: %s  %s in %0.3f secs (%s/sec)\n", filename, showfilesize(fsize), elapsedtime, showfilesize(rate))
+	
 				}
 			} else
 			{
-				fmt.Printf("\nFILE\n%s\n%s\n", urlhost, filename)
-				http.ServeFile(w, r, relfilename)
+				fmt.Printf("ERR: %s  NOT FOUND\n", filename)
+				http.NotFound(w, r)
 			}
 			
 		}	
@@ -200,6 +248,9 @@ func main() {
     
     // Allow user to specify config file    
     flag.StringVar(&configfile, "config", string(defaultconfig), "config file (default "+defaultconfig+")")
+
+    // Allow debug    
+    flag.StringVar(&debug, "debug", "0", "debug (1 or 0, default 0)")
     
     flag.Parse()
 
