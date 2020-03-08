@@ -11,11 +11,20 @@
 // Open dedicated command line window in above folder
 // ./g0chainwebserver <port> (default 6942)
 // browser (or app) point to:-
-// http://<IPaddress>:port/authticket/xxxxxxxxxxxxxx
-// for files
-// http://<IPaddress>:port/authticket/xxxxxxxxxxxxxx/remote/path/file.ext
-// for shared folders with specified full remote paths
-// e.g. http://192.168.1.50:6942/authticket/xxxxxxxxx/video/cat.m3u8
+//
+// AUTHTICKET FILE SHARE
+// For any wallet (authticket contains file hash)
+// http://<IPaddress>:port/authticket/xxxx
+//
+// AUTHTICKET FOLDER SHARE
+// For Owner Wallet (full path required)
+// http://<IPaddress>:port/authticket/xxxx/remote/path/file.ext
+// e.g. http://192.168.1.50:6942/authticket/xxxx/video/cat.m3u8
+//
+// For Other Wallet (File Hash required) xxxx authticket yyyy filehash
+// http://<IPaddress>:port/authhash/xxxx/yyyy/file.ext
+// e.g. http://192.168.1.50:6942/authhash/xxxx/yyyy/index.html
+// (file.ext required else hash is used for filename with no extension)
 
 package main
 
@@ -35,12 +44,15 @@ import (
     "encoding/base64"
 )
 
-const tmppath="tmp"
-const defaultconfig="config.yaml"
-const defaultallocation="allocation.txt"
-const version="0.0.2"
+const tmppath = "tmp"
+const defaultconfig = "config.yaml"
+const defaultwallet = "wallet.json"
+const defaultallocation = "allocation.txt"
+const version = "0.0.3"
 
 var configfile string
+var allocationfile string
+var walletfile string
 var debug string
 
 func fileExists(filename string) bool {
@@ -60,12 +72,12 @@ func showfilesize(bytes int64) string {
 		return(fmt.Sprintf("%d bytes", bytes)) 
 	}
 	if(bytes < 1000000) {
-		return(fmt.Sprintf("%d KB", int64(bytes/1000))) 
+		return(fmt.Sprintf("%0.1f KB", float64(bytes/1000))) 
 	}
 	if(bytes < 1000000000) {
-		return(fmt.Sprintf("%d MB", int64(bytes/1000000))) 
+		return(fmt.Sprintf("%0.2f MB", float64(bytes/1000000))) 
 	}			
-	return(fmt.Sprintf("%d GB", int64(bytes/1000000000))) 
+	return(fmt.Sprintf("%0.3f GB", float64(bytes/1000000000))) 
 }
 
 func microTime() float64 {
@@ -87,19 +99,30 @@ func main() {
     })
     	
     http.HandleFunc("/status/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "OK, config = %s", configfile)
+		fmt.Fprintf(w, "OK, config = %s, wallet = %s, allocation = %s", configfile, walletfile, allocationfile)
     })	
 
     http.HandleFunc("/config/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, defaultconfig)
     })
 
-    http.HandleFunc("/authticket/", func(w http.ResponseWriter, r *http.Request) {
+    mainhandle := func(w http.ResponseWriter, r *http.Request) {
 		urlfull := r.URL.Path
 		urlhost := r.Host
-		urlonly := strings.Replace(urlfull, "/authticket/", "", 1)
-		// Split into Max two parts, authticket plus (optional) path
-		urlsplit := strings.SplitN(urlonly, "/", 2)
+		urlonly := urlfull
+		var urlsplit []string
+		isauthticket := strings.Index(urlfull, "/authticket/")==0
+		if(isauthticket) {
+		  urlonly = strings.Replace(urlonly, "/authticket/", "", 1)
+		  // Split into Max two parts, authticket plus (optional) filepath
+		  urlsplit = strings.SplitN(urlonly, "/", 2)
+		} else
+		{
+		  urlonly = strings.Replace(urlonly, "/authhash/", "", 1)
+		  // Split into Max three parts, authticket, hash plus (optional) filename
+		  urlsplit = strings.SplitN(urlonly, "/", 3)
+		}
+
 		authticket := urlsplit[0];
 		// Convert to json 
 		atjson, err := base64.StdEncoding.DecodeString(authticket)
@@ -122,7 +145,7 @@ func main() {
 		var redirect bool
 		redirect = false
 						
-		allocationid, aerr := ioutil.ReadFile(defaultallocation)
+		allocationid, aerr := ioutil.ReadFile(allocationfile)
 		if aerr != nil {
 			log.Fatal(aerr)
 		}
@@ -133,29 +156,41 @@ func main() {
 		tmpdir = tmpdir+getTmpPath()//+string(os.PathSeparator)
 		os.Mkdir(tmpdir, 0700)
 
+		lookuphash := ""
 
 		if referencetype == "d" {
 		    filename = "/"
-		    if(len(urlsplit)>1) {
-				filename = filename+urlsplit[1]
+		    if(len(urlsplit)>2) {
+				filename = filename+urlsplit[2]
 			}
-			// If Authticket is for a directory, then file path is extracted as rest of url
-			if(filename[len(filename)-1:] == "/") {
-				redirect = true
-				filename = filename+".default"
+			if(isauthticket) {
+				// If Authticket is for a directory, then file path is extracted as rest of url
+				if(filename[len(filename)-1:] == "/") {
+					redirect = true
+					filename = filename+".default"
+				}
+		    } else
+		    {
+				// authhash, hash is 2nd parameter
+				lookuphash = urlsplit[1]
 			}
 		    relfilename = tmpdir+filename
 			cmdarray = []string{
 				"./zbox",
 				"download",
 				"--allocation",  // existing bug in zboxcli, allocation required for folder event though included in authticket
-				string(allocationid),
+				string(allocationid),		
 				"--authticket",	
 				string(authticket),
-				"--remotepath",
-				string(filename),
 				"--localpath",
-				string(relfilename) }		    
+				string(relfilename) }
+			if(len(lookuphash) > 0) {
+				cmdarray = append( cmdarray, "--lookuphash", lookuphash )	
+			} else
+			{
+				cmdarray = append( cmdarray, "--remotepath", string(filename) )	
+			}
+			    
 		}
 		
 		if referencetype == "f" {
@@ -174,8 +209,12 @@ func main() {
 		
 		if(configfile != defaultconfig) {
 			cmdarray = append( cmdarray, "--config", configfile )	
-		}	
+		}
 		
+		if(walletfile != defaultwallet) {
+			cmdarray = append( cmdarray, "--wallet", walletfile )	
+		}					
+						
 		if(len(filename)>0) {
 			fmt.Printf("SRV: %s  (%s)\n", filename, urlhost)
 
@@ -240,7 +279,10 @@ func main() {
         // (opportunity to cache files)
         // Delete folder and file
         os.RemoveAll(tmpdir) 
-    })
+    }
+    
+    http.HandleFunc("/authticket/", mainhandle)
+    http.HandleFunc("/authhash/", mainhandle)
 
     // Allow user to specify port    
     var port string
@@ -249,6 +291,12 @@ func main() {
     // Allow user to specify config file    
     flag.StringVar(&configfile, "config", string(defaultconfig), "config file (default "+defaultconfig+")")
 
+    // Allow user to specify wallet file    
+    flag.StringVar(&walletfile, "wallet", string(defaultwallet), "wallet file (default "+defaultwallet+")")
+    
+    // Allow user to specify allocation file    
+    flag.StringVar(&allocationfile, "allocation", string(defaultallocation), "allocation file (default "+defaultallocation+")")
+        
     // Allow debug    
     flag.StringVar(&debug, "debug", "0", "debug (1 or 0, default 0)")
     
