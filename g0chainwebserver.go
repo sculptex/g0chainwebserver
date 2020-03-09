@@ -22,9 +22,11 @@
 // e.g. http://192.168.1.50:6942/authticket/xxxx/video/cat.m3u8
 //
 // For Other Wallet (File Hash required) xxxx authticket yyyy filehash
-// http://<IPaddress>:port/authhash/xxxx/yyyy/file.ext
-// e.g. http://192.168.1.50:6942/authhash/xxxx/yyyy/index.html
+// http://<IPaddress>:port/authhash/xxxx/yyyy_file.ext
+// e.g. http://192.168.1.50:6942/authhash/xxxx/yyyy_index.html
 // (file.ext required else hash is used for filename with no extension)
+// Reason for change to _ separator, file path will still be relative
+// to authticket
 
 package main
 
@@ -48,7 +50,7 @@ const tmppath = "tmp"
 const defaultconfig = "config.yaml"
 const defaultwallet = "wallet.json"
 const defaultallocation = "allocation.txt"
-const version = "0.0.3"
+const version = "0.0.4"
 
 var configfile string
 var allocationfile string
@@ -71,13 +73,14 @@ func showfilesize(bytes int64) string {
 	if(bytes < 1000) {
 		return(fmt.Sprintf("%d bytes", bytes)) 
 	}
+	fbytes := float64(bytes)
 	if(bytes < 1000000) {
-		return(fmt.Sprintf("%0.1f KB", float64(bytes/1000))) 
+		return(fmt.Sprintf("%0.1f KB", float64(fbytes/1000))) 
 	}
 	if(bytes < 1000000000) {
-		return(fmt.Sprintf("%0.2f MB", float64(bytes/1000000))) 
+		return(fmt.Sprintf("%0.2f MB", float64(fbytes/1000000))) 
 	}			
-	return(fmt.Sprintf("%0.3f GB", float64(bytes/1000000000))) 
+	return(fmt.Sprintf("%0.3f GB", float64(fbytes/1000000000))) 
 }
 
 func microTime() float64 {
@@ -120,7 +123,7 @@ func main() {
 		{
 		  urlonly = strings.Replace(urlonly, "/authhash/", "", 1)
 		  // Split into Max three parts, authticket, hash plus (optional) filename
-		  urlsplit = strings.SplitN(urlonly, "/", 3)
+		  urlsplit = strings.SplitN(urlonly, "/", 2)
 		}
 
 		authticket := urlsplit[0];
@@ -160,9 +163,6 @@ func main() {
 
 		if referencetype == "d" {
 		    filename = "/"
-		    if(len(urlsplit)>2) {
-				filename = filename+urlsplit[2]
-			}
 			if(isauthticket) {
 				// If Authticket is for a directory, then file path is extracted as rest of url
 				if(filename[len(filename)-1:] == "/") {
@@ -173,6 +173,16 @@ func main() {
 		    {
 				// authhash, hash is 2nd parameter
 				lookuphash = urlsplit[1]
+				hashsplit := strings.SplitN(lookuphash, "_", 2)
+				lookuphash = hashsplit[0]
+				if(len(hashsplit)>1) {
+					// use after _ as filename
+					filename = filename+hashsplit[1]
+				} else
+				{
+					// just use filehash as filename if not specified 
+					filename = filename+hashsplit[0]
+				}
 			}
 		    relfilename = tmpdir+filename
 			cmdarray = []string{
