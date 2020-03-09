@@ -13,24 +13,26 @@ Open dedicated command line window in above folder
 
 ./g0chainwebserver --port <port.no> (default 6942)
 
+### FILE SHARES
+
+#### For File Authtickets (filename is decoded from filename included in authticket) :-
+
 browser (or app) point to:-
 
 - http://IPaddress:port/authticket/xxxxxxxxxxxxxx
 
-for files (filename and has included in authticket)
+- e.g. localhost:6942/authticket/xxxxxxxxxxxxxx
+
+### FOLDER SHARES
+
+#### For Folder Share Authtickets via full remote path (owner wallet only) :-
 
 - http://IPaddress:port/authticket/xxxxxxxxxxxxxx/remote/path/file.ext
-
-for shared folders with specified full remote paths (owner wallet)
-
 - e.g. http://192.168.1.50:6942/authticket/xxxxxxxxx/video/cat.m3u8 
 
-OR
+#### For Folder Share Authtickets + authhash (file hash) (any wallet) :-
 
 - http://IPaddress:port/authhash/xxxxxxxxxxxxxx/yyyyyyyyyyyyyy_file.ext
-
-for shared folders with file hash parameter (any wallet)
-
 - e.g. http://192.168.1.50:6942/authhash/xxxxxxxxx/yyyyyyyyyyyyyy_cat.m3u8
 - e.g. localhost:6942/authhash/xxxxxxxxx/yyyyyyyyyyyyyy_cat.m3u8
 
