@@ -9,9 +9,16 @@ Serves files stored on 0chain from specified authticket
 
 ## USAGE
 
-Open dedicated command line window in above folder
+Open dedicated console window in above folder
 
-- ./g0chainwebserver --port <port.no> (default 6942)
+    ./g0chainwebserver --port <port.no> (default 6942)
+
+### TYPICAL CONSOLE OUTPUT
+
+    Listening on port: 6942
+    SRV: /img.png  (localhost:6942)
+    GET: /img.png  637.4 KB in 4.180 secs (152.5 KB/sec)
+    SND: /img.png  637.4 KB in 0.007 secs (91.39 MB/sec)
 
 ### FILE SHARES
 
@@ -19,38 +26,38 @@ Open dedicated command line window in above folder
 
 browser (or app) point to:-
 
-- http://IPaddress:port/authticket/xxxxxxxxxxxxxx
-- e.g. localhost:6942/authticket/xxxxxxxxxxxxxx
+    http://IPaddress:port/authticket/xxxxxxxxxxxxxx
+    e.g. localhost:6942/authticket/xxxxxxxxxxxxxx
 
 ### FOLDER SHARES
 
 #### For Folder Share Authtickets via full remote path (owner wallet only) :-
 
-- http://IPaddress:port/authticket/xxxxxxxxxxxxxx/remote/path/file.ext
-- e.g. http://192.168.1.50:6942/authticket/xxxxxxxxx/video/cat.m3u8 
+    http://IPaddress:port/authticket/xxxxxxxxxxxxxx/remote/path/file.ext
+    e.g. http://192.168.1.50:6942/authticket/xxxxxxxxx/video/cat.m3u8 
 
 #### For Folder Share Authtickets + authhash (file hash) (any wallet) :-
 
-- http://IPaddress:port/authhash/xxxxxxxxxxxxxx/yyyyyyyyyyyyyy_file.ext
-- e.g. http://192.168.1.50:6942/authhash/xxxxxxxxx/yyyyyyyyyyyyyy_cat.m3u8
-- e.g. localhost:6942/authhash/xxxxxxxxx/yyyyyyyyyyyyyy_cat.m3u8
+    http://IPaddress:port/authhash/xxxxxxxxxxxxxx/yyyyyyyyyyyyyy_file.ext
+    e.g. http://192.168.1.50:6942/authhash/xxxxxxxxx/yyyyyyyyyyyyyy_cat.m3u8
+    e.g. localhost:6942/authhash/xxxxxxxxx/yyyyyyyyyyyyyy_cat.m3u8
 
 # STATUS
 ## Command Line parameters
 #### v0.0.3
-- --wallet (default wallet.json) specify different wallet file
-- --allocation (default allocation.txt) specify different allocation file
+    --wallet (default wallet.json) specify different wallet file
+    --allocation (default allocation.txt) specify different allocation file
 #### v0.0.2
-- --debug <1/0> (default 0) - 1 shows command line output to console
+    --debug <1/0> (default 0) - 1 shows command line output to console
 #### v0.0.1
-- --config <configfile.yaml> (default config.yaml)
-- --port <portno.> (default 6942)
+    --config <configfile.yaml> (default config.yaml)
+    --port <portno.> (default 6942)
 
 ## URL info paths
 #### v0.0.1
-- /status (Status OK)
-- /config (Show currently selected config.yaml file contents)
-- /version (show version number)
+    /status (Status OK)
+    /config (Show currently selected config.yaml file contents)
+    /version (show version number)
 
 ## UPDATES
 ### Fixes / Changes
