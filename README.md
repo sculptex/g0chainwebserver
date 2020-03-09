@@ -2,16 +2,16 @@
 Go based 0chain webserver
 Serves files stored on 0chain from specified authticket
  
-PRE-REQUSITES
-Existing $HOME/.zcn folder (the location for this executable)
-Containing zbox/zwallet cli tools plus existing wallet and allocation
-Build and Install this executable in above folder
+### PRE-REQUSITES
+#### - Existing $HOME/.zcn folder (the location for this executable)
+#### - Containing zbox/zwallet cli tools plus existing wallet and allocation
+#### - Build and Install this executable in above folder
 
 ## USAGE
 
 Open dedicated command line window in above folder
 
-./g0chainwebserver --port <port.no> (default 6942)
+- ./g0chainwebserver --port <port.no> (default 6942)
 
 ### FILE SHARES
 
@@ -20,7 +20,6 @@ Open dedicated command line window in above folder
 browser (or app) point to:-
 
 - http://IPaddress:port/authticket/xxxxxxxxxxxxxx
-
 - e.g. localhost:6942/authticket/xxxxxxxxxxxxxx
 
 ### FOLDER SHARES
