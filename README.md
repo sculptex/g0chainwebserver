@@ -15,25 +15,24 @@ Open dedicated command line window in above folder
 
 browser (or app) point to:-
 
-http://IPaddress:port/authticket/xxxxxxxxxxxxxx
+- http://IPaddress:port/authticket/xxxxxxxxxxxxxx
 
 for files (filename and has included in authticket)
 
-
-http://IPaddress:port/authticket/xxxxxxxxxxxxxx/remote/path/file.ext
+- http://IPaddress:port/authticket/xxxxxxxxxxxxxx/remote/path/file.ext
 
 for shared folders with specified full remote paths (owner wallet)
 
-e.g. http://192.168.1.50:6942/authticket/xxxxxxxxx/video/cat.m3u8
+- e.g. http://192.168.1.50:6942/authticket/xxxxxxxxx/video/cat.m3u8 
 
 OR
 
-http://IPaddress:port/authhash/xxxxxxxxxxxxxx/yyyyyyyyyyyyyy/file.ext
+- http://IPaddress:port/authhash/xxxxxxxxxxxxxx/yyyyyyyyyyyyyy_file.ext
 
 for shared folders with file hash parameter (any wallet)
 
-e.g. http://192.168.1.50:6942/authhash/xxxxxxxxx/yyyyyyyyyyyyyy/cat.m3u8
-
+- e.g. http://192.168.1.50:6942/authhash/xxxxxxxxx/yyyyyyyyyyyyyy_cat.m3u8
+- e.g. localhost:6942/authhash/xxxxxxxxx/yyyyyyyyyyyyyy_cat.m3u8
 
 # STATUS
 ## Command Line parameters
@@ -53,17 +52,22 @@ e.g. http://192.168.1.50:6942/authhash/xxxxxxxxx/yyyyyyyyyyyyyy/cat.m3u8
 - /version (show version number)
 
 ## UPDATES
-### Fixes
+### Fixes / Changes
+
+#### v0.0.4
+- Changed filehash separator to _ on folder shares to preserve path relative to authticket
+- Fixed file size accuracy
 #### v0.0.3
-Improved file size handling
+- Improved file size handling
 #### v0.0.2
-Better error handling for incorrect paths
+- Better error handling for incorrect paths
 #### v0.0.1
-Fixed differences in file/folder handling (folder still requires allocation even though encoded in authticket)
+- Fixed differences in file/folder handling (folder still requires allocation even though encoded in authticket)
+
 ### Additions
 #### v0.0.3
-Added support for filehash for folder shares
+- Added support for filehash for folder shares
 #### v0.0.2
-Added file size / xfer speed to console output
+- Added file size / xfer speed to console output
 #### v0.0.1
-Added support for default file for folder share. If no file specified, looks for .default file and then performs (301) redirect to file specified within
+- Added support for default file for folder share. If no file specified, looks for .default file and then performs (301) redirect to file specified within
