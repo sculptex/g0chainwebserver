@@ -109,6 +109,33 @@ func main() {
 		http.ServeFile(w, r, defaultconfig)
     })
 
+    http.HandleFunc("/enckeys/", func(w http.ResponseWriter, r *http.Request) {
+		var cmdarray []string
+		cmdarray = []string{
+			"./zbox",
+			"getwallet",
+			"--json" }
+
+		head := cmdarray[0]
+		parts := cmdarray[1:len(cmdarray)]
+		
+		jsonres , err := exec.Command(head,parts...).Output()
+		
+		if err != nil {
+			fmt.Printf("%s", err)
+		}
+		
+		var dat map[string]interface{}
+		if err := json.Unmarshal(jsonres, &dat); err != nil {
+			panic(err)
+		}
+		
+		clientid := dat["client_id"].(string)
+		encpubkey := dat["encryption_public_key"].(string)
+								
+		fmt.Fprintf(w, "OK, client_id = %s, encryption_public_key = %s", clientid, encpubkey)
+    })
+    
     mainhandle := func(w http.ResponseWriter, r *http.Request) {
 		urlfull := r.URL.Path
 		urlhost := r.Host
