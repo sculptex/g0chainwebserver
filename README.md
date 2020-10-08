@@ -54,6 +54,8 @@ browser (or app) point to:-
     --port <portno.> (default 6942)
 
 ## URL info paths
+#### v0.0.5
+    /enckeys (Show client_id and encryption_public_key for server wallet to enable encrypted file shares)
 #### v0.0.1
     /status (Status OK)
     /config (Show currently selected config.yaml file contents)
