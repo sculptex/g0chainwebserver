@@ -50,7 +50,7 @@ const tmppath = "tmp"
 const defaultconfig = "config.yaml"
 const defaultwallet = "wallet.json"
 const defaultallocation = "allocation.txt"
-const version = "0.0.4"
+const version = "0.0.5"
 
 var configfile string
 var allocationfile string
