@@ -115,6 +115,14 @@ func main() {
 			"./zbox",
 			"getwallet",
 			"--json" }
+		
+		if(configfile != defaultconfig) {
+			cmdarray = append( cmdarray, "--config", configfile )	
+		}
+		
+		if(walletfile != defaultwallet) {
+			cmdarray = append( cmdarray, "--wallet", walletfile )	
+		}	
 
 		head := cmdarray[0]
 		parts := cmdarray[1:len(cmdarray)]
