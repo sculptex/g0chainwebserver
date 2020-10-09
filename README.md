@@ -44,6 +44,10 @@ browser (or app) point to:-
 
 # STATUS
 ## Command Line parameters
+#### v0.0.6
+    --proto (default http) specify http or https
+    --certpath specify path to ssl certificate if https proto selected
+    --keypath specify path to ssl private key if https proto selected
 #### v0.0.3
     --wallet (default wallet.json) specify different wallet file
     --allocation (default allocation.txt) specify different allocation file
@@ -64,6 +68,10 @@ browser (or app) point to:-
 ## UPDATES
 ### Fixes / Changes
 
+#### v0.0.6
+- Added --proto parameter for http/https plus --certpath, --keypath for https option
+#### v0.0.5
+- Added /enckeys url info path
 #### v0.0.4
 - Changed filehash separator to _ on folder shares to preserve path relative to authticket
 - Fixed file size accuracy
