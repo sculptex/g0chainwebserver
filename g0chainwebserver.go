@@ -50,7 +50,7 @@ const tmppath = "tmp"
 const defaultconfig = "config.yaml"
 const defaultwallet = "wallet.json"
 const defaultallocation = "allocation.txt"
-const version = "0.0.5"
+const version = "0.0.6"
 
 var configfile string
 var allocationfile string
@@ -333,7 +333,17 @@ func main() {
     
     // Allow user to specify allocation file    
     flag.StringVar(&allocationfile, "allocation", string(defaultallocation), "allocation file (default "+defaultallocation+")")
-        
+
+    // Allow user to specify http/https protocol    
+    var proto string
+    flag.StringVar(&proto, "proto", "http", "http | https (default http)")
+    
+    // If https protocol selected, must specify certpath & keypath
+    var certpath string
+    var keypath string
+    flag.StringVar(&certpath, "certpath", "/etc/ssl/certs/certificate.crt", "path to certificate (if https proto specified)")
+    flag.StringVar(&keypath, "keypath", "/etc/ssl/private/certificate.key", "path to key (if https proto specified)")
+            
     // Allow debug    
     flag.StringVar(&debug, "debug", "0", "debug (1 or 0, default 0)")
     
@@ -341,5 +351,10 @@ func main() {
 
     // Advise listening on port
     fmt.Println("Listening on port:", port)
-    log.Fatal(http.ListenAndServe(":"+port, nil))
+    if(proto=="http") {
+		log.Fatal(http.ListenAndServe(":"+port, nil))
+	} 
+    if(proto=="https") {
+		log.Fatal(http.ListenAndServeTLS(":"+port, certpath, keypath, nil))
+	}
 }
